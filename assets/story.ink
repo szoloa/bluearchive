@@ -2,6 +2,10 @@
 
 这是一段文字
 
+开始游戏
+
+mika天下第一
+
 +   选项一
     -> phone
 +   选项二
@@ -23,10 +27,10 @@ You awake, tired as ever.
 
 
 === phone ===
-You take a quick glance at your phone. Unread mail and twitter notifications are swiped away with a tired motion. Ah! A missed call and text from Rauan. 
+You take a quick glance at your phone. Unread mail and twitter notifications are swiped away with a tired motion. Ah! A missed call and text from Rauan.
 +   You decide to deal with it tomorrow.
     -> next_day
-+   [Text back] -> rauan 
++   [Text back] -> rauan
 
 
 === rauan ===
@@ -35,5 +39,5 @@ You take a quick glance at your phone. Unread mail and twitter notifications are
 
 
 === coffee ===
-You spend your day with them, having a lovely time. 
+You spend your day with them, having a lovely time.
 -> END
