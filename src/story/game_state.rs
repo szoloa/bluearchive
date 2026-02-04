@@ -110,14 +110,15 @@ pub async fn draw_frame(state: &GameState<'_>) {
         }
     }
 }
-
 pub struct GameState<'a> {
     story: Story,
     line_buffer: Vec<inkling::Line>,
     current_choices: Vec<inkling::Choice>,
     current_text: String,
     is_choosing: bool,
+    is_choose: bool,
     pub story_ended: bool,
+    pub story_end: bool,
     should_continue: bool,
     pub background: Option<&'a Texture2D>,
     // pub material: Material,
@@ -125,6 +126,16 @@ pub struct GameState<'a> {
     pub current_speaker: Option<String>, // 当前正在说话的角色名
     pub speaker_position: (f32, f32),    // 立绘绘制基准坐标（例如屏幕左侧或右侧）
     pub font: Option<&'a Font>,
+}
+
+impl<'a> std::fmt::Debug for GameState<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "choose {}, choosing {}, end {}, ended {}",
+            self.is_choose, self.is_choosing, self.story_end, self.story_ended
+        )
+    }
 }
 
 impl<'a> GameState<'a> {
@@ -145,7 +156,9 @@ impl<'a> GameState<'a> {
             current_choices: Vec::new(),
             current_text: String::new(),
             is_choosing: false,
+            is_choose: false,
             story_ended: false,
+            story_end: false,
             should_continue: true,
             background: None,
             // material: material,
@@ -162,45 +175,50 @@ impl<'a> GameState<'a> {
     }
 
     fn advance_story(&mut self) -> Result<()> {
-        if self.story_ended {
+        // 清空行缓存
+        if !self.line_buffer.is_empty() && !self.is_choosing {
+            self.update_display_text();
+            self.should_continue = true;
+            return Ok(());
+        } else if self.is_choose {
+            println!("is choosed");
+            self.is_choosing = true;
+            self.is_choose = false;
+            return Ok(());
+        } else if self.story_end {
+            self.story_ended = true;
+            self.story_end = false;
             return Ok(());
         }
-
-        // 清空行缓存
-        self.line_buffer.clear();
 
         // 推进故事
         match self.story.resume(&mut self.line_buffer)? {
             Prompt::Done => {
+                println!("Story will be Done");
                 if !self.line_buffer.is_empty() {
-                    self.update_display_text();
+                    // self.update_display_text();
                     self.should_continue = true;
                 }
-                // 故事结束
-                self.story_ended = true;
-                self.current_text.push_str("\n\n[story end]");
+                self.story_end = true;
             }
             Prompt::Choice(choices) => {
+                println!("Story will have choices");
                 if !self.line_buffer.is_empty() {
-                    self.update_display_text();
                     self.should_continue = true;
-                } else {
-                    self.current_choices = choices;
-                    self.is_choosing = true;
                 }
+                self.is_choose = true;
+                self.current_choices = choices;
             }
         }
-
         Ok(())
     }
 
     fn update_display_text(&mut self) {
         self.current_text.clear();
 
+        println!("{:?}", self.line_buffer);
+        println!("{:?}", self);
         self.current_text = self.line_buffer.remove(0).text;
-        println!("{}", self.current_text);
-
-        // 移除最后一个多余的换行
         if !self.current_text.is_empty() {
             self.current_text.pop();
         }
@@ -273,4 +291,9 @@ pub fn handle_input(state: &mut GameState) -> Result<()> {
     }
 
     Ok(())
+}
+
+mod test {
+    #[test]
+    fn test1() {}
 }

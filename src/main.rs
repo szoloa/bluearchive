@@ -1,5 +1,5 @@
-use blueachive::spine::*;
-use blueachive::story::*;
+use bluearchive::spine::*;
+use bluearchive::story::*;
 use macroquad::prelude::*;
 
 #[macroquad::main("GalGame")]
@@ -8,11 +8,11 @@ async fn main() -> Result<()> {
     let mut state = GameState::new()?;
 
     // 加载字体（如果需要中文支持）
-    let font = load_ttf_font("assets/DouyinSansBold.ttf").await?;
-    //request_new_screen_size(1280.0, 900.0);
+    let font = load_ttf_font("assets/NotoSansSC-Medium.otf").await?;
+    request_new_screen_size(1200.0, 900.0);
     let mut textures = TextureManager::new();
     textures
-        .load_texture_auto("assets/BG_GameDevRoom.webp")
+        .load_texture_auto("assets/BG_AbandonedCorridor.png")
         .await
         .expect("background loaded error");
     println!("load success");
@@ -44,7 +44,9 @@ async fn main() -> Result<()> {
         .await
         .unwrap();
 
-    let background = textures.get("assets/BG_GameDevRoom.webp").expect("msg");
+    let background = textures
+        .get("assets/BG_AbandonedCorridor.png")
+        .expect("msg");
 
     println!("{:?}", background);
 
@@ -52,12 +54,8 @@ async fn main() -> Result<()> {
     state.current_speaker = Some(character.to_string());
     state.font = Some(&font);
 
-    let mut camera = Camera2D::default();
-    camera.zoom = vec2(1.0 / 650.0, 1.0 / 300.0);
-    camera.target = Vec2 {
-        x: screen_width(),
-        y: screen_height(),
-    };
+    println!("{} {}", screen_height(), screen_width());
+    // camera.zoom = Vec2::new(1.0 / 1200.0, 1.0 / 1600.0);
     let mut last_frame = get_time();
 
     // 游戏主循环
@@ -70,11 +68,7 @@ async fn main() -> Result<()> {
             .update(character, delta_time)
             .unwrap();
 
-        camera.target = Vec2 {
-            x: screen_width() / 2.0,
-            y: screen_height() / 2.0,
-        };
-        set_camera(&camera);
+        // set_camera(&camera);
         // 处理输入
         handle_input(&mut state)?;
 

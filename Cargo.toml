@@ -1,5 +1,5 @@
 [package]
-name = "blueachive"
+name = "bluearchive"
 version = "0.1.0"
 edition = "2024"
 
@@ -8,4 +8,4 @@ anyhow = "1.0.100"
 image = "0.25.9"
 inkling = "0.12.5"
 macroquad = { version = "0.4.14", features = ["audio"] }
-rusty_spine = { git = "https://github.com/jabuwu/rusty_spine3.8.git" } 
+rusty_spine = { git = "https://github.com/jabuwu/rusty_spine3.8.git" }
