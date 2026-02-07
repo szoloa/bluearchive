@@ -1,7 +1,11 @@
+// pub mod assets_manager;
 mod character;
 mod game_state;
+mod resource;
+pub mod sprite;
 mod texture_manager;
-mod ui;
+pub mod ui;
 
 pub use game_state::*;
+pub use resource::*;
 pub use texture_manager::*;

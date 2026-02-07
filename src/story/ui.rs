@@ -88,3 +88,305 @@ pub fn draw_text_wrapped(
         draw_text_ex(current_line.as_str(), x, current_y, text_param.clone());
     }
 }
+
+#[derive(Clone, Copy, Debug)]
+pub struct Vertex {
+    pub pos: Vec2,
+    pub uv: Vec2,
+}
+impl Vertex {
+    pub fn new(x: f32, y: f32, u: f32, v: f32) -> Self {
+        Vertex {
+            pos: vec2(x, y),
+            uv: vec2(u, v),
+        }
+    }
+}
+// 实现必要的 trait 以用于 `draw_mesh`
+impl From<Vertex> for macroquad::models::Vertex {
+    fn from(v: Vertex) -> Self {
+        Self {
+            position: vec3(v.pos.x, v.pos.y, 0.0),
+            uv: v.uv,
+            color: WHITE.into(),
+            normal: Vec4::new(0., 0., 0., 0.),
+        }
+    }
+}
+impl From<&Vertex> for macroquad::models::Vertex {
+    fn from(v: &Vertex) -> Self {
+        Self {
+            position: vec3(v.pos.x, v.pos.y, 0.0),
+            uv: v.uv,
+            color: WHITE.into(),
+            normal: Vec4::new(0., 0., 0., 0.),
+        }
+    }
+}
+
+/// 构建一个带纹理的圆角四边形网格
+/// # 参数
+/// * `rect`: 四边形的外包围矩形 (x, y, width, height)
+/// * `radius`: 圆角半径
+/// * `segments`: 每个圆角的细分段数（越高越平滑，通常8-16足够）
+pub fn build_rounded_rect_mesh(rect: Rect, radius: f32, segments: u8) -> (Vec<Vertex>, Vec<u16>) {
+    let mut vertices = Vec::new();
+    let mut indices = Vec::new();
+
+    // 确保半径有效
+    let radius = radius.min(rect.w * 0.5).min(rect.h * 0.5);
+    let segments = segments.max(1) as usize;
+
+    // 辅助函数：计算相对于矩形左上角的UV坐标
+    let calc_uv = |x: f32, y: f32| -> (f32, f32) {
+        let u = (x - rect.x) / rect.w;
+        let v = (y - rect.y) / rect.h;
+        (u.max(0.0).min(1.0), v.max(0.0).min(1.0)) // 确保在[0,1]范围内
+    };
+
+    // 定义四个圆角的圆心（内角点）
+    let corners = [
+        vec2(rect.x + radius, rect.y + radius),          // 左上
+        vec2(rect.x + rect.w - radius, rect.y + radius), // 右上
+        vec2(rect.x + rect.w - radius, rect.y + rect.h - radius), // 右下
+        vec2(rect.x + radius, rect.y + rect.h - radius), // 左下
+    ];
+
+    // --- 1. 中心矩形区域 ---
+    let center_vert_start_idx = vertices.len() as u16;
+
+    // 计算四个内角点的UV
+    let (u1, v1) = calc_uv(rect.x + radius, rect.y + radius);
+    let (u2, v2) = calc_uv(rect.x + rect.w - radius, rect.y + radius);
+    let (u3, v3) = calc_uv(rect.x + rect.w - radius, rect.y + rect.h - radius);
+    let (u4, v4) = calc_uv(rect.x + radius, rect.y + rect.h - radius);
+
+    // 添加中心矩形的四个顶点
+    vertices.push(Vertex::new(rect.x + radius, rect.y + radius, u1, v1));
+    vertices.push(Vertex::new(
+        rect.x + rect.w - radius,
+        rect.y + radius,
+        u2,
+        v2,
+    ));
+    vertices.push(Vertex::new(
+        rect.x + rect.w - radius,
+        rect.y + rect.h - radius,
+        u3,
+        v3,
+    ));
+    vertices.push(Vertex::new(
+        rect.x + radius,
+        rect.y + rect.h - radius,
+        u4,
+        v4,
+    ));
+
+    // 中心矩形的两个三角形
+    indices.extend_from_slice(&[
+        center_vert_start_idx,
+        center_vert_start_idx + 1,
+        center_vert_start_idx + 2,
+    ]);
+    indices.extend_from_slice(&[
+        center_vert_start_idx,
+        center_vert_start_idx + 2,
+        center_vert_start_idx + 3,
+    ]);
+
+    // --- 2. 四个圆角区域 ---
+    // 每个圆角的起始和结束角度（弧度）
+    let corner_angles = [
+        (std::f32::consts::PI, std::f32::consts::PI * 1.5), // 左上：π 到 1.5π
+        (std::f32::consts::PI * 1.5, 2.0 * std::f32::consts::PI), // 右上：1.5π 到 2π
+        (0.0, std::f32::consts::PI * 0.5),                  // 右下：0 到 0.5π
+        (std::f32::consts::PI * 0.5, std::f32::consts::PI), // 左下：0.5π 到 π
+    ];
+
+    for (corner_idx, ((start_angle, end_angle), &center)) in
+        corner_angles.iter().zip(corners.iter()).enumerate()
+    {
+        let vert_start_idx = vertices.len() as u16;
+
+        // 圆角的圆心顶点
+        let (cu, cv) = calc_uv(center.x, center.y);
+        vertices.push(Vertex::new(center.x, center.y, cu, cv));
+
+        // 生成圆角弧线上的顶点
+        for i in 0..=segments {
+            let t = i as f32 / segments as f32;
+            let angle = start_angle + (end_angle - start_angle) * t;
+
+            // 计算圆角弧线上的点
+            let dir = vec2(angle.cos(), angle.sin());
+            let pos = center + dir * radius;
+
+            // 计算正确的UV坐标
+            let (u, v) = calc_uv(pos.x, pos.y);
+            vertices.push(Vertex::new(pos.x, pos.y, u, v));
+
+            // 调试输出：检查每个顶点的UV
+            if u < 0.0 || u > 1.0 || v < 0.0 || v > 1.0 {
+                println!(
+                    "警告: 顶点{} (圆角{}) UV超出范围: ({:.3}, {:.3}), 位置: ({:.1}, {:.1})",
+                    vertices.len() - 1,
+                    corner_idx,
+                    u,
+                    v,
+                    pos.x,
+                    pos.y
+                );
+            }
+        }
+
+        // 为这个圆角生成三角形索引（扇形）
+        for i in 0..(segments as u16) {
+            indices.extend_from_slice(&[
+                vert_start_idx,         // 圆心
+                vert_start_idx + 1 + i, // 当前弧线点
+                vert_start_idx + 2 + i, // 下一个弧线点
+            ]);
+        }
+    }
+
+    (vertices, indices)
+}
+
+// 创建着色器
+use macroquad::miniquad::*;
+
+/// 创建圆角矩形材质
+pub fn create_rounded_rect_material() -> Material {
+    let vertex_shader = r#"#version 330 core
+    in vec3 position;
+    in vec2 texcoord;
+    in vec4 color0;
+
+    out vec2 uv;
+    out vec4 color;
+
+    uniform mat4 Model;
+    uniform mat4 Projection;
+    uniform float u_skew_x;  // 水平斜度，例如0.2表示倾斜20%
+    uniform float u_skew_y;  // 垂直斜度
+
+    void main() {
+        mat3 skew_matrix = mat3(
+                1.0, u_skew_x, 0.0,
+                u_skew_y, 1.0, 0.0,
+                0.0, 0.0, 1.0
+            );
+        vec3 skewed_position = skew_matrix * vec3(position.xy, 1.0);
+        gl_Position = Projection * Model * vec4(skewed_position.xy, position.z, 1.0);
+        uv = texcoord;
+        color = color0;
+    }
+    "#;
+
+    // 或者使用更简单的片段着色器版本（优化版）
+    let fragment_shader = r#"#version 330 core
+    in vec2 uv;
+    in vec4 color;
+
+    out vec4 FragColor;
+
+    uniform sampler2D Texture;
+    uniform vec2 u_tile_size;
+    uniform vec2 u_rect_size;    // 矩形大小
+    uniform vec2 u_texture_size; // 纹理实际大小
+    uniform float u_radius;
+    uniform vec4 u_texture_rect; // 纹理显示区域：x,y,width,height (0-1范围)
+    uniform vec2 u_offset;
+
+    void main() {
+        vec2 tex_coord;
+        vec2 tiled_uv = uv * u_rect_size / u_tile_size;
+        float tex_x = u_texture_rect.x;
+        float tex_y = u_texture_rect.y;
+        float tex_w = u_texture_rect.z;
+        float tex_h = u_texture_rect.w;
+        vec2 rect_ratio = u_rect_size / u_texture_size;
+        float scale = min(rect_ratio.x, rect_ratio.y)  ;
+        vec2 tile_count = u_rect_size / u_tile_size;
+        vec2 final_uv = uv;
+
+        if (u_tile_size.x > 0.0 && u_tile_size.y > 0.0) {
+            // 计算矩形中包含多少个平铺单元
+            vec2 tile_count = u_rect_size / u_tile_size;
+            // 对UV进行平铺
+            tiled_uv = fract(uv * tile_count);
+        } else {
+            // 不使用平铺，直接使用原始UV
+            tiled_uv = uv;
+        }
+        final_uv = fract(tiled_uv + u_offset);
+
+        // 当前像素在矩形中的位置（从0到size）
+        vec2 pos = uv * u_rect_size;
+        vec2 q = abs(pos - u_rect_size * 0.5) - (u_rect_size * 0.5 - u_radius);
+        float dist = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
+        float alpha = 1.0 - smoothstep(u_radius - 1.0, u_radius + 1.0, dist);
+
+        if (alpha <= 0.0) {
+            discard;
+        }
+        vec2 texture_uv = (3.0 >= 2.0) ?
+                fract(final_uv * tile_count) : final_uv;
+        vec4 tex_color = texture(Texture, texture_uv);
+
+        FragColor = vec4(tex_color.rgb, tex_color.a * alpha);
+    }
+    "#;
+
+    load_material(
+        ShaderSource::Glsl {
+            vertex: vertex_shader,
+            fragment: fragment_shader,
+        },
+        MaterialParams {
+            pipeline_params: PipelineParams {
+                color_blend: Some(BlendState::new(
+                    Equation::Add,
+                    BlendFactor::Value(BlendValue::SourceAlpha),
+                    BlendFactor::OneMinusValue(BlendValue::SourceAlpha),
+                )),
+                ..Default::default()
+            },
+            uniforms: vec![
+                UniformDesc::new("u_rect_size", UniformType::Float2),
+                UniformDesc::new("u_texture_size", UniformType::Float2),
+                UniformDesc::new("u_radius", UniformType::Float1),
+                UniformDesc::new("u_texture_rect", UniformType::Float4),
+                UniformDesc::new("u_skew_x", UniformType::Float1),
+                UniformDesc::new("u_skew_y", UniformType::Float1),
+                UniformDesc::new("u_tile_size", UniformType::Float2),
+                UniformDesc::new("u_offset", UniformType::Float2),
+            ],
+            textures: vec!["texture".to_string()],
+        },
+    )
+    .expect("Failed to create rounded rect material")
+}
+
+pub fn draw_chioce_material() -> Material {
+    let material = create_rounded_rect_material();
+    let rect_size = vec2(600.0, 50.0);
+
+    let texture_rect = vec4(0., 0.0, 1.0, 1.0);
+    let texture_size = vec2(1024. as f32 / 2., 512. as f32 / 5.);
+    let offset = Vec2::new(0.0, 0.5);
+
+    let radius = 5.0;
+    let skew_x = 0.; // 20%的水平斜度
+    let skew_y = -0.2; // 垂直斜度
+
+    material.set_uniform("u_rect_size", rect_size);
+    material.set_uniform("u_radius", radius as f32);
+    material.set_uniform("u_texture_size", texture_size);
+    material.set_uniform("u_tile_size", texture_size);
+    material.set_uniform("u_texture_rect", texture_rect);
+    material.set_uniform("u_skew_x", skew_x as f32);
+    material.set_uniform("u_skew_y", skew_y as f32);
+    material.set_uniform("u_offset", offset);
+    material
+}

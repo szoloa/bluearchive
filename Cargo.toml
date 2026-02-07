@@ -8,4 +8,11 @@ anyhow = "1.0.100"
 image = "0.25.9"
 inkling = "0.12.5"
 macroquad = { version = "0.4.14", features = ["audio"] }
+regex = "1.12.3"
 rusty_spine = { git = "https://github.com/jabuwu/rusty_spine3.8.git" }
+serde = {version = "1.0.228", features = ["derive"]}
+serde_yaml = "0.9.34"
+
+[[example]]
+name = "macroquad_test"
+path = "examples/macroquad_test.rs"

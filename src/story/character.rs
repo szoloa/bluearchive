@@ -1,6 +1,6 @@
 use crate::spine::{Spine, SpineDemo};
 use macroquad::prelude::*;
-use std::collections::HashMap;
+use std::{collections::HashMap, panic};
 
 pub struct Character {
     pub name: String,
@@ -62,9 +62,18 @@ impl CharacterManager {
     }
 
     pub fn get_meshs(&self, name: &str) -> &Vec<Mesh> {
-        &self.characters.get(name).unwrap().meshs
+        &self
+            .characters
+            .get(name)
+            .unwrap_or_else(|| panic!("can not found character {}.", name))
+            .meshs
     }
     pub fn get_decrible(&self, name: &str) -> String {
         self.characters.get(name).unwrap().name.clone()
     }
+}
+
+mod test {
+    #[test]
+    fn test() {}
 }
