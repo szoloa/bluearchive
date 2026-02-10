@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use anyhow::Result;
 use macroquad::prelude::*;
 use rusty_spine::{
     AnimationStateData, Atlas, SkeletonBinary, SkeletonJson, controller::SkeletonController,
@@ -39,16 +40,24 @@ impl Spine {
                 let skeleton_binary = SkeletonBinary::new(atlas);
                 skeleton_binary
                     .read_skeleton_data_file(path)
-                    .unwrap_or_else(|_| panic!("read skeleton failed"))
+                    .unwrap_or_else(|_| panic!("Read skeleton failed"))
             }
             SkeletonPath::Json(path) => {
                 let skeleton_json = SkeletonJson::new(atlas);
                 skeleton_json
                     .read_skeleton_data_file(path)
-                    .unwrap_or_else(|_| panic!("read skeleton failed"))
+                    .unwrap_or_else(|_| panic!("Read skeleton failed"))
             }
         });
         let animation_state_data = Arc::new(AnimationStateData::new(skeleton_data.clone()));
+        let animation_series: Vec<String> = skeleton_data
+            .animations()
+            .map(|a| {
+                let s = a.name();
+                s.to_string()
+            })
+            .collect();
+        debug!("Founded animation {:?}", animation_series);
         let mut controller = SkeletonController::new(skeleton_data, animation_state_data);
         controller
             .animation_state
@@ -92,5 +101,11 @@ impl Spine {
             meshs.push(mesh);
         }
         meshs
+    }
+    pub fn set_animationn(&mut self, animation_name: &str, index: usize) -> Result<()> {
+        self.controller
+            .animation_state
+            .set_animation_by_name(index, animation_name, true)?;
+        Ok(())
     }
 }

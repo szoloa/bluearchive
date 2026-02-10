@@ -55,22 +55,22 @@ pub fn draw_text_wrapped(
 
     // 按单词分割（英文以空格分隔，中文等通常每个字符都是“单词”）
     // 这是一个简单的实现，对于中英文混合文本，你可能需要更复杂的分词
-    let words: Vec<&str> = text.split_whitespace().collect();
+    // let words: Vec<&str> = text.split_whitespace().collect();
 
-    for word in words {
+    for word in text.split("") {
         // 检查当前行是否为空
-        let word_with_space = if current_line.is_empty() {
-            word.to_string()
-        } else {
-            format!(" {}", word)
-        };
+        // let word_with_space = if current_line.is_empty() {
+        //     word.to_string()
+        // } else {
+        //     format!(" {}", word)
+        // };
 
         // 计算添加这个词后的宽度
-        let word_width = measure_text(word_with_space.as_str(), None, font_size as u16, 1.0).width;
+        let word_width = measure_text(word, font, font_size as u16, 1.0).width;
 
         // 如果当前行是空的，或者加上这个词后不超过最大宽度，就添加到当前行
         if current_line.is_empty() || current_width + word_width <= max_width {
-            current_line.push_str(&word_with_space);
+            current_line.push_str(word);
             current_width += word_width;
         } else {
             // 否则，绘制当前行，并开始新的一行

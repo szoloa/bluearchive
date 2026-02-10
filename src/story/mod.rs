@@ -1,6 +1,7 @@
 // pub mod assets_manager;
 mod character;
 mod game_state;
+pub mod input;
 mod resource;
 pub mod sprite;
 mod texture_manager;

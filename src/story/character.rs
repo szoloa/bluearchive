@@ -10,11 +10,9 @@ pub struct Character {
 }
 
 impl Character {
-    pub fn update(&mut self, delta_time: f32) {
+    pub fn update(&mut self, delta_time: f32, x: f32, y: f32) {
         self.spine.controller.update(delta_time);
-        self.meshs =
-            self.spine
-                .get_mesh(self.texture.clone(), screen_width() / 2.0, screen_height());
+        self.meshs = self.spine.get_mesh(self.texture.clone(), x, y);
     }
 }
 
@@ -30,7 +28,6 @@ impl CharacterManager {
         texture: Texture2D,
         spinedemo: SpineDemo,
     ) -> Result<(), String> {
-        let texture = texture.clone();
         let mut spine = Spine::load(spinedemo);
         let meshs = spine.get_mesh(texture.clone(), screen_width() / 2.0, screen_height());
         self.characters.insert(
@@ -52,9 +49,9 @@ impl CharacterManager {
             characters: HashMap::new(),
         }
     }
-    pub fn update(&mut self, name: &str, delta_time: f32) -> Result<(), String> {
+    pub fn update(&mut self, name: &str, delta_time: f32, x: f32, y: f32) -> Result<(), String> {
         if let Some(character) = self.characters.get_mut(name) {
-            character.update(delta_time);
+            character.update(delta_time, x, y);
             Ok(())
         } else {
             Err(format!("Character {} not found", name))
@@ -71,9 +68,4 @@ impl CharacterManager {
     pub fn get_decrible(&self, name: &str) -> String {
         self.characters.get(name).unwrap().name.clone()
     }
-}
-
-mod test {
-    #[test]
-    fn test() {}
 }
