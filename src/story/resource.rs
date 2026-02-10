@@ -72,7 +72,10 @@ pub async fn load_resource<'a>() -> Result<GameState<'a>> {
     let font = load_ttf_font("assets/NotoSansSC-Medium.otf").await.unwrap();
     println!("Load font success.");
     textures
-        .load_texture_auto("assets/BG_AbandonedCorridor.png", None)
+        .load_texture_auto(
+            "/home/kina/temp/code/rust/spine/01_Background/BG_MainOffice_Night.png",
+            Some("background"),
+        )
         .await
         .expect("background loaded error");
     println!("load backgrund success.");
@@ -106,7 +109,7 @@ pub async fn load_resource<'a>() -> Result<GameState<'a>> {
 
     let atlas = SpriteAtlas::load("assets/Common.png", "assets/CommonAtlas.yaml").await;
     println!("Loaded atlas with {} sprites.", atlas.sprites.len());
-    state.background = Some(String::from("assets/BG_AbandonedCorridor.png"));
+    state.background = Some("background".to_string());
     state.textures = Some(textures);
 
     state.font = Some(font);

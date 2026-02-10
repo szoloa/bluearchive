@@ -29,6 +29,26 @@ pub fn draw_vertical_gradient(
     }
 }
 
+pub fn draw_text_center(
+    text: &str,
+    x: f32,
+    y: f32,
+    font: Option<&Font>,
+    color: Color,
+    font_size: f32,
+) {
+    let text_param = TextParams {
+        font: font,                  // 指定字体
+        font_size: font_size as u16, // 字体大小
+        font_scale: 1.0,             // 缩放因子
+        font_scale_aspect: 1.0,
+        color: color,         // 颜色
+        ..Default::default()  // 其他参数保持默认
+    };
+    let word_width = measure_text(text, font, font_size as u16, 1.0).width;
+    draw_text_ex(text, x - word_width / 2., y, text_param);
+}
+
 pub fn draw_text_wrapped(
     text: &str,
     x: f32,

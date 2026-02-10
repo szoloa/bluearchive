@@ -14,6 +14,9 @@ impl Character {
         self.spine.controller.update(delta_time);
         self.meshs = self.spine.get_mesh(self.texture.clone(), x, y);
     }
+    pub fn set_animation(&mut self, animation: &str) {
+        self.spine.set_animationn(animation, 0).unwrap();
+    }
 }
 
 pub struct CharacterManager {
@@ -67,5 +70,11 @@ impl CharacterManager {
     }
     pub fn get_decrible(&self, name: &str) -> String {
         self.characters.get(name).unwrap().name.clone()
+    }
+    pub fn set_animation(&mut self, name: &str, animation: &str) {
+        self.characters
+            .get_mut(name)
+            .unwrap()
+            .set_animation(animation);
     }
 }

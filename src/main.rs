@@ -26,7 +26,6 @@ async fn main() -> Result<()> {
     }
     // 游戏主循环
     while !state.story_ended {
-        // clear_background(WHITE);
         let current_time = get_time();
         let delta_time = (current_time - last_frame) as f32;
         last_frame = current_time;
@@ -35,11 +34,15 @@ async fn main() -> Result<()> {
                 .character_manager
                 .update(character, delta_time, screen_width() / 2., screen_height())
                 .unwrap_or_else(|e| panic!("Can not update character. {:?}", e));
+            if let Some(animation) = &state.speak_state.animation {
+                state.character_manager.set_animation(character, animation);
+            }
         }
-        // 处理输入
         handle_input(&mut state)?;
-
         draw_frame(&state).await;
+        // clear_background(WHITE);
+
+        // 处理输入
 
         next_frame().await;
     }

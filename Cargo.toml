@@ -16,3 +16,7 @@ serde_yaml = "0.9.34"
 [[example]]
 name = "macroquad_test"
 path = "examples/macroquad_test.rs"
+
+[[example]]
+name = "characters"
+path = "examples/characters.rs"

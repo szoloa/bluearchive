@@ -80,7 +80,6 @@ fn draw_chioce(
 ) {
     for (i, choice) in current_choices.iter().enumerate() {
         let y_pos = screen_height() / 3.0 + (i as f32 * 84.0);
-        let x_pos = screen_width() / 2.0 - 200.;
         if let Some(material) = material {
             gl_use_material(material);
         }
@@ -102,18 +101,13 @@ fn draw_chioce(
         // 选项文本
         let text = format!("{}. {}", i + 1, choice.text);
 
-        draw_text_ex(
+        draw_text_center(
             &text,
-            x_pos + 160.,
+            screen_width() / 2.,
             y_pos + 2.,
-            TextParams {
-                font: font,      // 指定字体
-                font_size: 30,   // 字体大小
-                font_scale: 1.0, // 缩放因子
-                font_scale_aspect: 1.0,
-                color: BLACK,         // 颜色
-                ..Default::default()  // 其他参数保持默认
-            },
+            font,  // 指定字体
+            BLACK, // 颜色
+            30.,   // 字体大小
         );
 
         // 鼠标悬停效果
@@ -296,7 +290,7 @@ impl<'a> GameState<'a> {
 
         debug!("{:?}", self.line_buffer);
         debug!("{:?}", self);
-        let line = self.line_buffer.remove(0).text;
+        let line = self.line_buffer.remove(0);
         self.speak_state = SpeakerState::parser_line_content(line);
     }
 
@@ -370,6 +364,7 @@ pub fn handle_input(state: &mut GameState) -> Result<()> {
 
 pub struct SpeakerState {
     pub name: Option<String>,
+    pub animation: Option<String>,
     pub position: Option<Vec2>,
     pub color: Option<Color>,
     pub content: String,
@@ -379,31 +374,37 @@ impl SpeakerState {
     fn new() -> Self {
         Self {
             name: None,
+            animation: None,
             position: None,
             color: None,
             content: "".to_string(),
         }
     }
 
-    fn parser_line_content(line: String) -> Self {
+    fn parser_line_content(line: inkling::Line) -> Self {
         let mut speak_state = Self::new();
+        let line_content = line.text;
         let regex = Regex::new(r"(.*?): ").unwrap();
 
-        let character = regex.find(line.as_bytes());
+        let character = regex.find(line_content.as_bytes());
+
+        let mut speaker_string = String::new();
         if let Some(speaker) = character {
-            let mut speaker_string = String::new();
             speaker
                 .as_bytes()
                 .read_to_string(&mut speaker_string)
                 .unwrap();
-            speak_state.name = Some(speaker_string.replace(": ", ""));
-            speak_state.content = line.replace(&speaker_string, "");
+            speak_state.name = Some(speaker_string.replace(": ", "")).clone();
+            speak_state.content = line_content.replace(&speaker_string, "");
         } else {
-            speak_state.content = line;
+            speak_state.content = line_content;
         }
 
         if !speak_state.content.is_empty() {
             speak_state.content.pop();
+        }
+        if let Some(animation) = line.tags.get(0) {
+            speak_state.animation = Some(animation.clone());
         }
         speak_state
     }
