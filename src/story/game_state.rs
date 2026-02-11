@@ -9,133 +9,6 @@ use regex::bytes::Regex;
 pub use std::fs;
 use std::io::Read;
 
-fn draw_dialog_box(
-    gradient_height: f32,
-    speaker: Option<&String>,
-    current_text: &str,
-    font: Option<&Font>,
-) {
-    draw_vertical_gradient(
-        0.0,
-        screen_height() - gradient_height - gradient_height / 4.0,
-        screen_width(),
-        gradient_height + gradient_height / 4.0,
-        Color::new(0.05, 0.05, 0.1, 0.8),
-        Color::new(0.05, 0.05, 0.1, 0.8),
-    );
-
-    draw_vertical_gradient(
-        0.0,
-        screen_height() - gradient_height - gradient_height / 4.0 - gradient_height / 2.0,
-        screen_width(),
-        gradient_height / 2.0,
-        Color::new(0.05, 0.05, 0.1, 0.0),
-        Color::new(0.05, 0.05, 0.1, 0.8),
-    );
-
-    draw_line(
-        120.0,
-        screen_height() - gradient_height / 2.0 - gradient_height / 4.0 - gradient_height / 8.0,
-        screen_width() - 120.0,
-        screen_height() - gradient_height / 2.0 - gradient_height / 4.0 - gradient_height / 8.0,
-        2.0,
-        GRAY,
-    );
-    let text_x = 120.0;
-    let text_y = screen_height() - gradient_height / 2.0 - gradient_height / 6.0;
-    let max_text_width = screen_width() - 240.0; // 屏幕宽度减去左右边距
-    let font_size = 32.0;
-    if let Some(speaker_name) = speaker {
-        draw_text_ex(
-            speaker_name,
-            120.0,
-            screen_height() - gradient_height,
-            TextParams {
-                font: font,      // 指定字体
-                font_size: 48,   // 字体大小
-                font_scale: 1.0, // 缩放因子
-                // font_scale_aspect: 1.0,
-                color: WHITE,
-                ..Default::default() // 其他参数保持默认
-            },
-        );
-    }
-    // 绘制带自动换行的文本
-    draw_text_wrapped(
-        current_text,
-        text_x,
-        text_y,
-        font_size,
-        max_text_width,
-        WHITE,
-        font,
-    );
-}
-
-fn draw_chioce(
-    current_choices: &Vec<inkling::Choice>,
-    texture: &Texture2D,
-    material: Option<&Material>,
-    font: Option<&Font>,
-) {
-    for (i, choice) in current_choices.iter().enumerate() {
-        let y_pos = screen_height() / 3.0 + (i as f32 * 84.0);
-        if let Some(material) = material {
-            gl_use_material(material);
-        }
-        draw_texture_ex(
-            texture,
-            screen_width() * 0.1 + (i as f32 * 16.),
-            y_pos - 34.,
-            WHITE,
-            DrawTextureParams {
-                dest_size: Some(Vec2 {
-                    x: screen_width() * 0.9,
-                    y: screen_height() * 0.08,
-                }),
-                ..Default::default()
-            },
-        );
-        gl_use_default_material();
-
-        // 选项文本
-        let text = format!("{}. {}", i + 1, choice.text);
-
-        draw_text_center(
-            &text,
-            screen_width() / 2.,
-            y_pos + 2.,
-            font,  // 指定字体
-            BLACK, // 颜色
-            30.,   // 字体大小
-        );
-
-        // 鼠标悬停效果
-        // let mouse_pos = mouse_position();
-        // let rect = Rect::new(60.0, y_pos - 48.0, 700.0, 64.0);
-        // if rect.contains(vec2(mouse_pos.0, mouse_pos.1)) {
-        //     draw_rectangle_lines(55.0, y_pos - 50.0, 710.0, 64.0, 2.0, WHITE);
-        // }
-    }
-}
-
-fn draw_background(texture: &Texture2D) {
-    let screen_width = screen_width();
-    let screen_height = screen_height();
-
-    // 3. 绘制图片，尺寸设置为整个窗口
-    draw_texture_ex(
-        texture,
-        0.0, // 从左上角(0,0)开始绘制
-        0.0,
-        WHITE,
-        DrawTextureParams {
-            dest_size: Some(Vec2::new(screen_width, screen_height)), // 关键：设置目标尺寸为全屏
-            ..Default::default()
-        },
-    );
-}
-
 pub async fn draw_frame(state: &GameState<'_>) {
     if let Some(background) = &state.get_background() {
         draw_background(background);
@@ -181,12 +54,12 @@ pub struct GameState<'a> {
     story: Story,
     pub speak_state: SpeakerState,
     line_buffer: Vec<inkling::Line>,
-    current_choices: Vec<inkling::Choice>,
-    is_choosing: bool,
-    is_choose: bool,
+    pub current_choices: Vec<inkling::Choice>,
+    pub is_choosing: bool,
+    pub is_choose: bool,
     pub story_ended: bool,
     pub story_end: bool,
-    should_continue: bool,
+    pub should_continue: bool,
     pub background: Option<String>,
     pub character_manager: CharacterManager,
     pub font: Option<Font>,
@@ -254,7 +127,7 @@ impl<'a> GameState<'a> {
             .get(self.background.as_ref().unwrap().as_str())
     }
 
-    fn advance_story(&mut self) -> Result<()> {
+    pub fn advance_story(&mut self) -> Result<()> {
         // 推进故事
         if self.line_buffer.is_empty() {
             if self.story_end {
@@ -294,7 +167,7 @@ impl<'a> GameState<'a> {
         self.speak_state = SpeakerState::parser_line_content(line);
     }
 
-    fn make_choice(&mut self, choice_index: usize) -> Result<()> {
+    pub fn make_choice(&mut self, choice_index: usize) -> Result<()> {
         if choice_index < self.current_choices.len() {
             self.story.make_choice(choice_index)?;
             self.current_choices.clear();
@@ -303,63 +176,6 @@ impl<'a> GameState<'a> {
         }
         Ok(())
     }
-}
-
-pub fn handle_input(state: &mut GameState) -> Result<()> {
-    // 空格键推进故事（当不在选择状态时）
-    if is_key_pressed(KeyCode::Space) && !state.is_choosing && state.should_continue {
-        state.should_continue = false;
-        state.advance_story()?;
-    }
-
-    // 鼠标点击继续（当不在选择状态时）
-    if is_mouse_button_pressed(MouseButton::Left) && !state.is_choosing && state.should_continue {
-        state.should_continue = false;
-        state.advance_story()?;
-    }
-
-    // 处理选择（数字键1-9）
-    if state.is_choosing {
-        for i in 0..state.current_choices.len().min(9) {
-            let key_code = match i {
-                0 => KeyCode::Key1,
-                1 => KeyCode::Key2,
-                2 => KeyCode::Key3,
-                3 => KeyCode::Key4,
-                4 => KeyCode::Key5,
-                5 => KeyCode::Key6,
-                6 => KeyCode::Key7,
-                7 => KeyCode::Key8,
-                8 => KeyCode::Key9,
-                _ => continue,
-            };
-
-            if is_key_pressed(key_code) {
-                state.make_choice(i)?;
-                break;
-            }
-        }
-
-        // 鼠标点击选择
-        if is_mouse_button_pressed(MouseButton::Left) {
-            let (mouse_x, mouse_y) = mouse_position();
-
-            for (i, choice) in state.current_choices.iter().enumerate() {
-                println!("{:?}", choice);
-
-                let y_pos = screen_height() / 2.0 - (i as f32 * 84.0) - 34.;
-
-                // 简单的点击区域检测
-                if mouse_y >= y_pos && mouse_y < y_pos + 30.0 {
-                    if mouse_x >= 40.0 && mouse_x < screen_width() - 40. {
-                        state.make_choice(i)?;
-                        break;
-                    }
-                }
-            }
-        }
-    }
-    Ok(())
 }
 
 pub struct SpeakerState {

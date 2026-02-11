@@ -1,6 +1,7 @@
 use std::panic;
 
 use anyhow::Ok;
+use bluearchive::story::input::handle_input;
 use bluearchive::story::*;
 use macroquad::{
     audio::{PlaySoundParams, play_sound},
